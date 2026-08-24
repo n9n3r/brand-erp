@@ -1,0 +1,184 @@
+// BrandOS ERP — data model
+// Multi-tenant by shared schema: every business record carries brandId and is
+// scoped in the service/API layer. Roles: SUPER_ADMIN (platform) and
+// BRAND_ADMIN / BRAND_USER (tenant-scoped staff).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  BRAND_ADMIN
+  BRAND_USER
+}
+
+enum SaleStatus {
+  PAID
+  PARTIAL
+  UNPAID
+}
+
+model Brand {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  slug        String     @unique @db.VarChar(100)
+  description String?
+  currency    String     @default("NGN") @db.VarChar(8)
+  isActive    Boolean    @default(true)
+  invoiceSeq  Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  users       User[]
+  categories  Category[]
+  products    Product[]
+  customers   Customer[]
+  sales       Sale[]
+  usageLogs   UsageLog[]
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  passwordHash   String
+  name           String
+  role           Role      @default(BRAND_USER)
+  brandId        String?
+  brand          Brand?    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
+  loginCount     Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  sales           Sale[]
+  passwordResets  PasswordResetToken[]
+  usageLogs       UsageLog[]
+
+  @@index([brandId])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  brandId     String
+  brand       Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  products Product[]
+
+  @@unique([brandId, name])
+  @@index([brandId])
+}
+
+model Product {
+  id           String    @id @default(cuid())
+  brandId      String
+  brand        Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  categoryId   String?
+  category     Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  name         String
+  sku          String?
+  description  String?
+  costPrice    Decimal?  @db.Decimal(12, 2)
+  price        Decimal   @default(0) @db.Decimal(12, 2)
+  quantity     Int       @default(0)
+  reorderLevel Int       @default(5)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  saleItems SaleItem[]
+
+  @@unique([brandId, sku])
+  @@index([brandId])
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  brandId   String
+  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+
+  sales Sale[]
+
+  @@index([brandId])
+}
+
+model Sale {
+  id            String     @id @default(cuid())
+  brandId       String
+  brand         Brand      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  invoiceNumber String
+  customerId    String?
+  customer      Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  soldById      String
+  soldBy        User       @relation(fields: [soldById], references: [id])
+  status        SaleStatus @default(UNPAID)
+  subtotal      Decimal    @db.Decimal(14, 2)
+  discount      Decimal    @default(0) @db.Decimal(14, 2)
+  tax           Decimal    @default(0) @db.Decimal(14, 2)
+  total         Decimal    @db.Decimal(14, 2)
+  amountPaid    Decimal    @default(0) @db.Decimal(14, 2)
+  notes         String?
+  soldAt        DateTime   @default(now())
+  createdAt     DateTime   @default(now())
+
+  items SaleItem[]
+
+  @@unique([brandId, invoiceNumber])
+  @@index([brandId, soldAt])
+}
+
+model SaleItem {
+  id          String   @id @default(cuid())
+  saleId      String
+  sale        Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName String
+  quantity    Int
+  unitPrice   Decimal  @db.Decimal(12, 2)
+  lineTotal   Decimal  @db.Decimal(14, 2)
+
+  @@index([saleId])
+  @@index([productId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model UsageLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  brandId   String?
+  brand     Brand?   @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  action    String
+  detail    String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([brandId, createdAt])
+  @@index([userId, createdAt])
+}
