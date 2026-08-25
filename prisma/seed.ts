@@ -177,6 +177,27 @@ async function main() {
   }
   await prisma.brand.update({ where: { id: brand.id }, data: { invoiceSeq: seq } });
 
+  // 7b) Expenses history
+  const expenseData: Array<[string, number, number]> = [
+    ['Stock purchase', 185000, 40],
+    ['Marketing & ads', 45000, 34],
+    ['Transport & delivery', 28000, 30],
+    ['Rent', 120000, 25],
+    ['Packaging', 36000, 20],
+    ['Salaries', 95000, 15],
+    ['Bank charges', 4500, 10],
+    ['Equipment', 65000, 6],
+    ['Stock purchase', 72000, 3],
+    ['Marketing & ads', 30000, 1],
+  ];
+  for (const [category, amount, daysAgo] of expenseData) {
+    const at = new Date(Date.now() - daysAgo * 86400000);
+    at.setHours(rint(10, 16), rint(0, 59));
+    await prisma.expense.create({
+      data: { brandId: brand.id, category, amount, incurredAt: at, createdById: demoAdmin.id },
+    });
+  }
+
   // 7) Login/usage history for the monitoring dashboards
   const staff = [demoAdmin, demoStaff, superAdmin];
   for (let d = 13; d >= 0; d--) {

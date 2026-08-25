@@ -104,6 +104,7 @@ export default async function InvoicesPage({
               <th className="th text-right">Total</th>
               <th className="th text-right">Balance</th>
               <th className="th">Status</th>
+              <th className="th">Delivery</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
@@ -129,6 +130,11 @@ export default async function InvoicesPage({
                   </td>
                   <td className="td">
                     <StatusBadge status={s.status} />
+                  </td>
+                  <td className="td">
+                    <Badge tone={s.deliveredAt ? 'green' : 'slate'}>
+                      {s.deliveredAt ? 'delivered' : 'pending'}
+                    </Badge>
                   </td>
                 </tr>
               );

@@ -30,6 +30,7 @@ model Brand {
   slug        String     @unique @db.VarChar(100)
   description String?
   currency    String     @default("NGN") @db.VarChar(8)
+  logoUrl     String?
   isActive    Boolean    @default(true)
   invoiceSeq  Int        @default(0)
   createdAt   DateTime   @default(now())
@@ -40,6 +41,7 @@ model Brand {
   products    Product[]
   customers   Customer[]
   sales       Sale[]
+  expenses    Expense[]
   usageLogs   UsageLog[]
 }
 
@@ -60,6 +62,7 @@ model User {
   updatedAt       DateTime  @updatedAt
 
   sales           Sale[]
+  expenses        Expense[]
   passwordResets  PasswordResetToken[]
   emailVerifies   EmailVerificationToken[]
   usageLogs       UsageLog[]
@@ -126,14 +129,15 @@ model Sale {
   invoiceNumber String
   customerId    String?
   customer      Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  soldById      String
-  soldBy        User       @relation(fields: [soldById], references: [id])
+  soldById      String?
+  soldBy        User?      @relation(fields: [soldById], references: [id], onDelete: SetNull)
   status        SaleStatus @default(UNPAID)
   subtotal      Decimal    @db.Decimal(14, 2)
   discount      Decimal    @default(0) @db.Decimal(14, 2)
   tax           Decimal    @default(0) @db.Decimal(14, 2)
   total         Decimal    @db.Decimal(14, 2)
   amountPaid    Decimal    @default(0) @db.Decimal(14, 2)
+  deliveredAt   DateTime?
   notes         String?
   soldAt        DateTime   @default(now())
   createdAt     DateTime   @default(now())
@@ -157,6 +161,22 @@ model SaleItem {
 
   @@index([saleId])
   @@index([productId])
+}
+
+/// Business expenses recorded by brand staff (categories are free-text).
+model Expense {
+  id          String   @id @default(cuid())
+  brandId     String
+  brand       Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  category    String   @db.VarChar(60)
+  description String?
+  amount      Decimal  @db.Decimal(14, 2)
+  incurredAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([brandId, incurredAt])
 }
 
 model PasswordResetToken {

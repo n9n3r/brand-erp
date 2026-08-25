@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server';
+import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { ApiError, fail, ok } from '@/lib/api';
 import { requireApiSuperAdmin } from '@/lib/api-auth';
@@ -60,6 +61,38 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       req,
     });
     return ok({ brand: updated });
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * Permanently delete a brand and everything under it (users, products,
+ * invoices, expenses, customers, categories). Requires a body of
+ * { confirm: "<exact brand name>" } as a safety against accidents.
+ */
+export async function DELETE(req: NextRequest, { params }: Params) {
+  try {
+    const session = await requireApiSuperAdmin();
+    const body = z.object({ confirm: z.string().min(1) }).parse(await req.json().catch(() => ({})));
+
+    const brand = await prisma.brand.findUnique({
+      where: { id: params.id },
+      include: { _count: { select: { users: true, sales: true, products: true, expenses: true } } },
+    });
+    if (!brand) throw new ApiError(404, 'Brand not found');
+    if (body.confirm.trim() !== brand.name) {
+      throw new ApiError(400, 'Type the exact brand name to confirm deletion');
+    }
+
+    await prisma.brand.delete({ where: { id: brand.id } });
+    await recordUsage({
+      userId: session.sub,
+      action: 'BRAND_DELETED',
+      detail: `${brand.name} (users: ${brand._count.users}, invoices: ${brand._count.sales}, products: ${brand._count.products}, expenses: ${brand._count.expenses})`,
+      req,
+    });
+    return ok({ ok: true });
   } catch (error) {
     return fail(error);
   }

@@ -38,7 +38,7 @@ export default async function ReportsPage({
     );
   }
 
-  const [summary, daily, topProducts, salesForExport] = await Promise.all([
+  const [summary, daily, topProducts, salesForExport, expensesAgg] = await Promise.all([
     getSalesSummary(session.brandId, from, to),
     getDailySales(session.brandId, from, to),
     getTopProducts(session.brandId, from, to, 10),
@@ -55,7 +55,13 @@ export default async function ReportsPage({
         items: { select: { quantity: true } },
       },
     }),
+    prisma.expense.aggregate({
+      where: { brandId: session.brandId, incurredAt: { gte: from, lte: to } },
+      _sum: { amount: true },
+    }),
   ]);
+  const expensesTotal = num(expensesAgg._sum.amount);
+  const net = summary.revenue - expensesTotal;
 
   const csvRows: Array<Array<string | number>> = salesForExport.map((s) => [
     s.invoiceNumber,
@@ -102,6 +108,17 @@ export default async function ReportsPage({
           value={money(summary.outstanding, currency)}
           sub={`${summary.unpaid} unpaid · ${summary.partial} partial`}
           icon={ShoppingBag}
+        />
+        <StatCard
+          label="Expenses (period)"
+          value={money(expensesTotal, currency)}
+          sub="recorded in Expenses"
+          icon={ShoppingBag}
+        />
+        <StatCard
+          label="Net (revenue − expenses)"
+          value={money(net, currency)}
+          sub={net >= 0 ? 'profitable period' : 'loss over period'}
         />
       </div>
 

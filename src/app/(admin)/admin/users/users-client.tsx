@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { KeyRound, Plus, Power, Search } from 'lucide-react';
+import { KeyRound, Plus, Power, Search, Trash2 } from 'lucide-react';
 import { api } from '@/lib/client';
 import { Badge, Button, PageHeader, TableWrap } from '@/components/ui';
 import { Modal } from '@/components/modal';
@@ -83,8 +83,17 @@ export function UsersClient({
     }
   }
 
-  async function resetPassword(e: React.FormEvent) {
-    e.preventDefault();
+  async function deleteUser(user: AdminUserRow) {
+    if (!window.confirm(`Permanently delete ${user.name} (${user.email})? Their past invoices are kept.`)) return;
+    try {
+      await api(`/api/admin/users/${user.id}`, { method: 'DELETE' });
+      router.refresh();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Delete failed');
+    }
+  }
+
+  async function resetPassword(e: React.FormEvent) {    e.preventDefault();
     if (!pwModal.user) return;
     setBusy(true);
     setError(null);
@@ -179,6 +188,16 @@ export function UsersClient({
                     aria-label={`Toggle ${u.name}`}
                   >
                     <Power className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => deleteUser(u)}
+                    disabled={u.id === currentUserId || u.role === 'SUPER_ADMIN'}
+                    className="text-red-600 hover:bg-red-50"
+                    aria-label={`Delete ${u.name}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </td>

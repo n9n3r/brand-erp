@@ -35,11 +35,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       const brand = await prisma.brand.findUnique({ where: { id: body.brandId } });
       if (!brand) throw new ApiError(400, 'Brand not found');
     }
+    if (body.email) {
+      const email = body.email.toLowerCase().trim();
+      const existing = await prisma.user.findFirst({
+        where: { email, NOT: { id: user.id } },
+      });
+      if (existing) throw new ApiError(409, 'Another user already uses that email');
+    }
 
     const updated = await prisma.user.update({
       where: { id: params.id },
       data: {
         ...(body.name !== undefined ? { name: body.name.trim() } : {}),
+        ...(body.email !== undefined ? { email: body.email.toLowerCase().trim() } : {}),
         ...(body.role !== undefined ? { role: body.role } : {}),
         ...(body.brandId !== undefined
           ? { brandId: body.role === 'SUPER_ADMIN' || body.brandId === null ? null : body.brandId }
@@ -60,10 +68,42 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       userId: session.sub,
       brandId: updated.brandId,
       action: 'USER_UPDATED',
-      detail: `${user.email}${body.password ? ' · password reset' : ''}${body.isActive !== undefined ? ` · ${body.isActive ? 'activated' : 'deactivated'}` : ''}`,
+      detail: `${user.email}${body.email ? ` → ${updated.email}` : ''}${body.password ? ' · password reset' : ''}${
+        body.isActive !== undefined ? ` · ${body.isActive ? 'activated' : 'deactivated'}` : ''
+      }`,
       req,
     });
     return ok({ user: updated });
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * Permanently delete a user. Their past invoices are preserved (soldBy is
+ * nulled); their sessions, reset tokens and usage log links are cleaned up.
+ */
+export async function DELETE(req: NextRequest, { params }: Params) {
+  try {
+    const session = await requireApiSuperAdmin();
+    const user = await prisma.user.findUnique({ where: { id: params.id } });
+    if (!user) throw new ApiError(404, 'User not found');
+    if (user.id === session.sub) throw new ApiError(400, 'You cannot delete your own account');
+    if (user.role === 'SUPER_ADMIN') {
+      const activeSuperAdmins = await prisma.user.count({
+        where: { role: 'SUPER_ADMIN', isActive: true, NOT: { id: user.id } },
+      });
+      if (activeSuperAdmins === 0) throw new ApiError(400, 'Cannot delete the last super admin');
+    }
+
+    await prisma.user.delete({ where: { id: user.id } });
+    await recordUsage({
+      userId: session.sub,
+      action: 'USER_DELETED',
+      detail: user.email,
+      req,
+    });
+    return ok({ ok: true });
   } catch (error) {
     return fail(error);
   }

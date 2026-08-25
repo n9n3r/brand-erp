@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE, verifySession } from '@/lib/jwt';
 
-const BRAND_PREFIXES = ['/dashboard', '/inventory', '/customers', '/sales', '/invoices', '/reports', '/settings'];
+const BRAND_PREFIXES = ['/dashboard', '/inventory', '/customers', '/sales', '/invoices', '/expenses', '/reports', '/settings'];
 const ADMIN_PREFIXES = ['/admin'];
 const AUTH_PAGES = ['/login', '/signup'];
 
@@ -61,6 +61,7 @@ export const config = {
     '/customers/:path*',
     '/sales/:path*',
     '/invoices/:path*',
+    '/expenses/:path*',
     '/reports/:path*',
     '/settings/:path*',
     '/admin/:path*',

@@ -24,7 +24,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
   }
 }
 
-/** Record payment: sets the cumulative amount paid; status recalculated. */
+/** Record payment and/or delivery status. */
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const session = await requireApiBrandUser();
@@ -33,21 +33,38 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const sale = await prisma.sale.findFirst({ where: { id: params.id, brandId: session.brandId } });
     if (!sale) throw new ApiError(404, 'Invoice not found');
 
-    const total = num(sale.total);
-    const amountPaid = r2(Math.min(body.amountPaid, total));
-    const status = amountPaid >= total - 0.001 ? 'PAID' : amountPaid > 0 ? 'PARTIAL' : 'UNPAID';
+    const data: { amountPaid?: number; status?: 'PAID' | 'PARTIAL' | 'UNPAID'; deliveredAt?: Date | null } = {};
 
-    const updated = await prisma.sale.update({
-      where: { id: sale.id },
-      data: { amountPaid, status },
-    });
-    await recordUsage({
-      userId: session.sub,
-      brandId: session.brandId,
-      action: 'SALE_PAYMENT',
-      detail: `${updated.invoiceNumber} · paid ${amountPaid}/${total}`,
-      req,
-    });
+    if (body.amountPaid !== undefined) {
+      const total = num(sale.total);
+      const amountPaid = r2(Math.min(body.amountPaid, total));
+      data.amountPaid = amountPaid;
+      data.status = amountPaid >= total - 0.001 ? 'PAID' : amountPaid > 0 ? 'PARTIAL' : 'UNPAID';
+    }
+    if (body.delivered !== undefined) {
+      data.deliveredAt = body.delivered ? new Date() : null;
+    }
+
+    const updated = await prisma.sale.update({ where: { id: sale.id }, data });
+
+    if (body.delivered !== undefined) {
+      await recordUsage({
+        userId: session.sub,
+        brandId: session.brandId,
+        action: 'SALE_DELIVERY',
+        detail: `${updated.invoiceNumber} · ${body.delivered ? 'delivered' : 'delivery pending'}`,
+        req,
+      });
+    }
+    if (body.amountPaid !== undefined) {
+      await recordUsage({
+        userId: session.sub,
+        brandId: session.brandId,
+        action: 'SALE_PAYMENT',
+        detail: `${updated.invoiceNumber} · paid ${data.amountPaid}/${num(sale.total)}`,
+        req,
+      });
+    }
     return ok({ sale: updated });
   } catch (error) {
     return fail(error);

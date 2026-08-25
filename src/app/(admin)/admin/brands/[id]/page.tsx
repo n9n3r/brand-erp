@@ -7,6 +7,8 @@ import { prisma } from '@/lib/prisma';
 import { addDays, fmtDate, fmtDateTime, startOfDay } from '@/lib/format';
 import { Badge, Card } from '@/components/ui';
 import { BrandEditForm } from './brand-edit-form';
+import { UserManager } from './user-manager';
+import { DangerZone } from './danger-zone';
 
 export const metadata: Metadata = { title: 'Brand details' };
 
@@ -18,19 +20,34 @@ export default async function AdminBrandDetailPage({ params }: { params: { id: s
     include: {
       users: {
         orderBy: { createdAt: 'desc' },
-        select: { id: true, name: true, email: true, role: true, isActive: true, lastLoginAt: true, loginCount: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          isActive: true,
+          emailVerifiedAt: true,
+          lastLoginAt: true,
+          loginCount: true,
+        },
       },
-      _count: { select: { products: true, customers: true, sales: true, categories: true } },
+      _count: { select: { products: true, customers: true, sales: true, categories: true, users: true, expenses: true } },
     },
   });
   if (!brand) notFound();
 
   const start30d = startOfDay(addDays(new Date(), -29));
-  const [agg] = await Promise.all([
+  const [agg, activities] = await Promise.all([
     prisma.sale.aggregate({
       where: { brandId: brand.id, soldAt: { gte: start30d } },
       _sum: { total: true },
       _count: true,
+    }),
+    prisma.usageLog.findMany({
+      where: { brandId: brand.id },
+      orderBy: { createdAt: 'desc' },
+      take: 15,
+      include: { user: { select: { name: true } } },
     }),
   ]);
 
@@ -56,7 +73,7 @@ export default async function AdminBrandDetailPage({ params }: { params: { id: s
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="space-y-6 lg:col-span-2">
           <BrandEditForm
             brandId={brand.id}
             initial={{
@@ -67,55 +84,48 @@ export default async function AdminBrandDetailPage({ params }: { params: { id: s
             }}
           />
 
-          <h2 className="mb-3 mt-8 font-semibold text-slate-900">Team & usage</h2>
-          <Card className="overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="th">User</th>
-                    <th className="th">Role</th>
-                    <th className="th text-right">Logins</th>
-                    <th className="th">Last login</th>
-                    <th className="th">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {brand.users.map((u) => (
-                    <tr key={u.id}>
-                      <td className="td">
-                        <div className="font-medium text-slate-900">{u.name}</div>
-                        <div className="text-xs text-slate-500">{u.email}</div>
-                      </td>
-                      <td className="td">
-                        <Badge tone={u.role === 'BRAND_ADMIN' ? 'indigo' : 'slate'}>
-                          {u.role === 'BRAND_ADMIN' ? 'admin' : 'staff'}
-                        </Badge>
-                      </td>
-                      <td className="td text-right">{u.loginCount}</td>
-                      <td className="td text-slate-500">
-                        {u.lastLoginAt ? fmtDateTime(u.lastLoginAt) : 'never'}
-                      </td>
-                      <td className="td">
-                        <Badge tone={u.isActive ? 'green' : 'red'}>{u.isActive ? 'active' : 'disabled'}</Badge>
-                      </td>
-                    </tr>
-                  ))}
-                  {brand.users.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="td py-8 text-center text-slate-500">
-                        No users yet — add one from the{' '}
-                        <Link href="/admin/users" className="text-brand-600 hover:underline">
-                          Users page
-                        </Link>
-                        .
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
+          <UserManager
+            brandId={brand.id}
+            users={brand.users.map((u) => ({
+              ...u,
+              emailVerified: !!u.emailVerifiedAt,
+              lastLoginAt: u.lastLoginAt ? u.lastLoginAt.toISOString() : null,
+            }))}
+          />
+
+          <Card className="p-5">
+            <h2 className="mb-3 font-semibold text-slate-900">Recent activity</h2>
+            <ul className="divide-y divide-slate-100">
+              {activities.map((log) => (
+                <li key={log.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm text-slate-800">
+                      <strong>{log.user?.name ?? 'System'}</strong>{' '}
+                      <span className="text-slate-500">
+                        {log.action === 'LOGIN' ? 'logged in' : log.action === 'LOGOUT' ? 'signed out' : log.action.replaceAll('_', ' ').toLowerCase()}
+                      </span>
+                    </p>
+                    {log.detail ? <p className="truncate text-xs text-slate-400">{log.detail}</p> : null}
+                  </div>
+                  <span className="whitespace-nowrap text-xs text-slate-400">{fmtDateTime(log.createdAt)}</span>
+                </li>
+              ))}
+              {activities.length === 0 ? (
+                <li className="py-8 text-center text-sm text-slate-500">No activity recorded yet.</li>
+              ) : null}
+            </ul>
           </Card>
+
+          <DangerZone
+            brandId={brand.id}
+            brandName={brand.name}
+            stats={{
+              users: brand._count.users,
+              sales: brand._count.sales,
+              products: brand._count.products,
+              expenses: brand._count.expenses,
+            }}
+          />
         </div>
 
         <div className="space-y-4">
@@ -127,6 +137,7 @@ export default async function AdminBrandDetailPage({ params }: { params: { id: s
                 ['Categories', brand._count.categories],
                 ['Customers', brand._count.customers],
                 ['Invoices (all time)', brand._count.sales],
+                ['Expenses', brand._count.expenses],
               ].map(([label, value]) => (
                 <div key={String(label)} className="flex justify-between">
                   <dt className="text-slate-500">{label}</dt>

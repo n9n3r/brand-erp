@@ -9,6 +9,7 @@ import { Badge, StatusBadge } from '@/components/ui';
 import { LogoMark } from '@/components/logo';
 import { PrintButton } from '@/components/print-button';
 import { PaymentForm } from './payment-form';
+import { DeliveryToggle } from './delivery-toggle';
 
 export const metadata: Metadata = { title: 'Invoice' };
 
@@ -26,7 +27,7 @@ export default async function InvoiceDetailPage({
       items: true,
       customer: true,
       soldBy: { select: { name: true } },
-      brand: { select: { name: true, description: true, currency: true } },
+      brand: { select: { name: true, description: true, currency: true, logoUrl: true } },
     },
   });
   if (!sale) notFound();
@@ -59,7 +60,12 @@ export default async function InvoiceDetailPage({
         <div className="flex flex-col gap-6 border-b border-slate-200 pb-8 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="flex items-center gap-2.5">
-              <LogoMark size={36} />
+              {sale.brand.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={sale.brand.logoUrl} alt={`${sale.brand.name} logo`} className="h-12 w-12 rounded-xl object-contain" />
+              ) : (
+                <LogoMark size={36} />
+              )}
               <span className="text-lg font-bold text-slate-900">{sale.brand.name}</span>
             </div>
             {sale.brand.description ? (
@@ -87,7 +93,9 @@ export default async function InvoiceDetailPage({
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Date issued</p>
             <p className="mt-1 font-medium text-slate-900">{fmtDate(sale.soldAt)}</p>
-            <p className="mt-1 text-xs text-slate-500">Recorded by {sale.soldBy.name}</p>
+            {sale.soldBy ? (
+              <p className="mt-1 text-xs text-slate-500">Recorded by {sale.soldBy.name}</p>
+            ) : null}
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Payment</p>
@@ -100,6 +108,11 @@ export default async function InvoiceDetailPage({
               <p className="mt-1 text-sm text-emerald-600 font-medium">Fully settled</p>
             )}
           </div>
+        </div>
+
+        {/* Delivery status (app chrome only — not printed) */}
+        <div className="no-print mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <DeliveryToggle saleId={sale.id} delivered={!!sale.deliveredAt} deliveredAt={sale.deliveredAt} />
         </div>
 
         {/* Items */}

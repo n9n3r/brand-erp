@@ -13,6 +13,7 @@ import {
   Settings,
   ShoppingCart,
   Users,
+  Wallet,
   Activity as ActivityIcon,
 } from 'lucide-react';
 import { api } from '@/lib/client';
@@ -25,6 +26,7 @@ const brandNav = [
   { href: '/customers', label: 'Customers', icon: Users },
   { href: '/sales/new', label: 'New Sale', icon: ShoppingCart },
   { href: '/invoices', label: 'Invoices', icon: FileText },
+  { href: '/expenses', label: 'Expenses', icon: Wallet },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];

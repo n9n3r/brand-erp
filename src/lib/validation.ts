@@ -75,7 +75,36 @@ export const saleSchema = z.object({
 });
 
 export const paymentSchema = z.object({
-  amountPaid: z.number().min(0),
+  amountPaid: z.number().min(0).optional(),
+  delivered: z.boolean().optional(),
+}).refine((v) => v.amountPaid !== undefined || v.delivered !== undefined, {
+  message: 'Nothing to update',
+});
+
+export const expenseSchema = z.object({
+  category: z.string().min(1, 'Category is required').max(60),
+  description: z.string().max(300).optional().nullable(),
+  amount: z.number().positive('Amount must be greater than zero'),
+  incurredAt: z.string().datetime().optional(),
+});
+
+export const staffCreateSchema = z.object({
+  name: z.string().min(2, 'Name is required').max(80),
+  email: z.string().email('Enter a valid email address'),
+  password: strongPasswordSchema,
+  role: z.enum(['BRAND_ADMIN', 'BRAND_USER']),
+});
+
+export const staffUpdateSchema = z.object({
+  isActive: z.boolean().optional(),
+  role: z.enum(['BRAND_ADMIN', 'BRAND_USER']).optional(),
+  password: strongPasswordSchema.optional(),
+});
+
+export const logoSchema = z.object({
+  dataUrl: z
+    .string()
+    .regex(/^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/, 'Unsupported image format'),
 });
 
 export const brandSettingsSchema = z.object({
@@ -107,6 +136,7 @@ export const adminUserSchema = z.object({
 
 export const adminUserUpdateSchema = z.object({
   name: z.string().min(2).max(80).optional(),
+  email: z.string().email('Enter a valid email address').optional(),
   role: z.enum(['SUPER_ADMIN', 'BRAND_ADMIN', 'BRAND_USER']).optional(),
   brandId: z.string().min(1).optional().nullable(),
   isActive: z.boolean().optional(),
