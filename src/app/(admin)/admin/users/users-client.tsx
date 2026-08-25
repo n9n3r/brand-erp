@@ -151,7 +151,10 @@ export function UsersClient({
               <td className="td text-right font-medium">{u.loginCount}</td>
               <td className="td text-slate-500">{u.lastLoginAt ? fmtDateTime(u.lastLoginAt) : 'never'}</td>
               <td className="td">
-                <Badge tone={u.isActive ? 'green' : 'red'}>{u.isActive ? 'active' : 'disabled'}</Badge>
+                <div className="flex flex-wrap gap-1">
+                  <Badge tone={u.isActive ? 'green' : 'red'}>{u.isActive ? 'active' : 'disabled'}</Badge>
+                  {!u.emailVerified ? <Badge tone="amber">unverified email</Badge> : null}
+                </div>
               </td>
               <td className="td">
                 <div className="flex justify-end gap-1">
@@ -215,10 +218,11 @@ export function UsersClient({
               className="input"
               type="text"
               required
-              minLength={8}
+              minLength={10}
+              maxLength={72}
               value={createForm.password}
               onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-              placeholder="At least 8 characters — share securely"
+              placeholder="10+ chars with a letter and a number — share securely"
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -278,13 +282,15 @@ export function UsersClient({
               className="input"
               type="text"
               required
-              minLength={8}
+              minLength={10}
+              maxLength={72}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="At least 8 characters"
+              placeholder="10+ chars with a letter and a number"
             />
             <p className="mt-1 text-xs text-slate-400">
-              Share the new password with the user securely. They can change it later via “Forgot password”.
+              Their existing sessions will be signed out. Share the new password securely — they can change
+              it later via “Forgot password”.
             </p>
           </div>
           <div className="flex justify-end gap-2 pt-2">

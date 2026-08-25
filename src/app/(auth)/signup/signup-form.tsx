@@ -2,15 +2,28 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { Check, X } from 'lucide-react';
 import { api } from '@/lib/client';
 import { Button } from '@/components/ui';
+import { validatePassword, containsPersonalInfo } from '@/lib/password-policy';
 
 export function SignupForm() {
   const router = useRouter();
   const [form, setForm] = useState({ name: '', brandName: '', email: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const checks = useMemo(() => {
+    const policy = validatePassword(form.password);
+    const personal = containsPersonalInfo(form.password, { email: form.email, name: form.name });
+    return [
+      { label: '10–72 characters', ok: form.password.length >= 10 && form.password.length <= 72 },
+      { label: 'At least one letter and one number', ok: /[A-Za-z]/.test(form.password) && /[0-9]/.test(form.password) },
+      { label: 'No common/guessable passwords', ok: form.password.length > 0 && policy.ok },
+      { label: 'Not your email or name', ok: form.password.length > 0 && !personal },
+    ];
+  }, [form]);
 
   function set(field: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -59,7 +72,17 @@ export function SignupForm() {
           </div>
           <div>
             <label className="label" htmlFor="password">Password</label>
-            <input id="password" type="password" required minLength={8} autoComplete="new-password" className="input" placeholder="At least 8 characters" value={form.password} onChange={set('password')} />
+            <input id="password" type="password" required minLength={10} maxLength={72} autoComplete="new-password" className="input" placeholder="At least 10 characters" value={form.password} onChange={set('password')} />
+            {form.password.length > 0 ? (
+              <ul className="mt-2 space-y-1">
+                {checks.map((c) => (
+                  <li key={c.label} className={`flex items-center gap-1.5 text-xs ${c.ok ? 'text-emerald-600' : 'text-slate-500'}`}>
+                    {c.ok ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5 text-slate-400" />}
+                    {c.label}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
           <Button type="submit" disabled={busy} className="w-full">
             {busy ? 'Creating workspace…' : 'Create workspace'}

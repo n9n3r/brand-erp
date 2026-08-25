@@ -6,7 +6,15 @@ import { useState } from 'react';
 import { api } from '@/lib/client';
 import { Button } from '@/components/ui';
 
-export function LoginForm({ next, initialError }: { next?: string; initialError?: string }) {
+export function LoginForm({
+  next,
+  initialError,
+  initialInfo,
+}: {
+  next?: string;
+  initialError?: string;
+  initialInfo?: string;
+}) {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,6 +48,11 @@ export function LoginForm({ next, initialError }: { next?: string; initialError?
         {error ? (
           <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
+          </div>
+        ) : null}
+        {initialInfo ? (
+          <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            {initialInfo}
           </div>
         ) : null}
 

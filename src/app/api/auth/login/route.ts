@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
       name: user.name,
       role: user.role,
       brandId: user.brandId,
+      tv: user.tokenVersion,
     });
 
     await prisma.user.update({

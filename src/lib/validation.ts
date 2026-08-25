@@ -1,16 +1,28 @@
 import { z } from 'zod';
+import { strongPasswordSchema, containsPersonalInfo } from '@/lib/password-policy';
 
 export const loginSchema = z.object({
   email: z.string().email('Enter a valid email address'),
   password: z.string().min(1, 'Password is required'),
 });
 
-export const signupSchema = z.object({
-  name: z.string().min(2, 'Your name is required').max(80),
-  brandName: z.string().min(2, 'Brand name is required').max(80),
-  email: z.string().email('Enter a valid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters').max(72),
-});
+export const signupSchema = z
+  .object({
+    name: z.string().min(2, 'Your name is required').max(80),
+    brandName: z.string().min(2, 'Brand name is required').max(80),
+    email: z.string().email('Enter a valid email address'),
+    password: strongPasswordSchema,
+  })
+  .superRefine((data, ctx) => {
+    // Password must not contain the user's own email or name.
+    if (containsPersonalInfo(data.password, { email: data.email, name: data.name })) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['password'],
+        message: 'Password must not contain your email address or name.',
+      });
+    }
+  });
 
 export const forgotPasswordSchema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -18,7 +30,7 @@ export const forgotPasswordSchema = z.object({
 
 export const resetPasswordSchema = z.object({
   token: z.string().min(10, 'Reset token is missing'),
-  password: z.string().min(8, 'Password must be at least 8 characters').max(72),
+  password: strongPasswordSchema,
 });
 
 export const productSchema = z.object({
@@ -88,7 +100,7 @@ export const adminBrandUpdateSchema = z.object({
 export const adminUserSchema = z.object({
   name: z.string().min(2, 'Name is required').max(80),
   email: z.string().email('Enter a valid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters').max(72),
+  password: strongPasswordSchema,
   role: z.enum(['SUPER_ADMIN', 'BRAND_ADMIN', 'BRAND_USER']),
   brandId: z.string().min(1).optional().nullable(),
 });
@@ -98,7 +110,7 @@ export const adminUserUpdateSchema = z.object({
   role: z.enum(['SUPER_ADMIN', 'BRAND_ADMIN', 'BRAND_USER']).optional(),
   brandId: z.string().min(1).optional().nullable(),
   isActive: z.boolean().optional(),
-  password: z.string().min(8, 'Password must be at least 8 characters').max(72).optional(),
+  password: strongPasswordSchema.optional(),
 });
 
 export type ProductInput = z.infer<typeof productSchema>;

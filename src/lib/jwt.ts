@@ -13,6 +13,9 @@ export type SessionPayload = {
   name: string;
   role: Role;
   brandId: string | null;
+  /** Token version at issue time — bumped on password reset/change so old
+   *  JWTs become invalid even before their 7-day expiry. Missing = 0. */
+  tv?: number;
 };
 
 function secretKey() {

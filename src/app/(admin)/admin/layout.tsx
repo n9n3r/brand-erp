@@ -7,9 +7,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const session = await requireAdminSession();
   const user = await prisma.user.findUnique({
     where: { id: session.sub },
-    select: { isActive: true, name: true },
+    select: { isActive: true, name: true, tokenVersion: true },
   });
   if (!user || !user.isActive) redirect('/login?error=disabled');
+  if ((session.tv ?? 0) !== user.tokenVersion) redirect('/login?error=expired');
 
   return (
     <div className="min-h-screen bg-slate-50">

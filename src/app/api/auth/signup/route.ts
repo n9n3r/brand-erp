@@ -5,6 +5,7 @@ import { hashPassword } from '@/lib/password';
 import { signupSchema } from '@/lib/validation';
 import { recordUsage } from '@/lib/logs';
 import { SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, signSession } from '@/lib/jwt';
+import { issueEmailVerification } from '@/lib/email-verification';
 import { slugify } from '@/lib/format';
 
 export const runtime = 'nodejs';
@@ -53,7 +54,20 @@ export async function POST(req: NextRequest) {
       name: user.name,
       role: 'BRAND_ADMIN',
       brandId: brand.id,
+      tv: 0,
     });
+
+    // Send the email-verification link (logged to console when no email
+    // provider is configured; the in-app banner offers a resend).
+    try {
+      await issueEmailVerification({
+        userId: user.id,
+        email: user.email,
+        appUrl: process.env.APP_URL || req.nextUrl.origin,
+      });
+    } catch (err) {
+      console.error('[signup] verification email failed:', err);
+    }
 
     await prisma.user.update({
       where: { id: user.id },

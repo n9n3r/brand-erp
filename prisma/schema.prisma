@@ -44,21 +44,24 @@ model Brand {
 }
 
 model User {
-  id             String    @id @default(cuid())
-  email          String    @unique
-  passwordHash   String
-  name           String
-  role           Role      @default(BRAND_USER)
-  brandId        String?
-  brand          Brand?    @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  isActive       Boolean   @default(true)
-  lastLoginAt    DateTime?
-  loginCount     Int       @default(0)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  name            String
+  role            Role      @default(BRAND_USER)
+  brandId         String?
+  brand           Brand?    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  isActive        Boolean   @default(true)
+  emailVerifiedAt DateTime?
+  tokenVersion    Int       @default(0)
+  lastLoginAt     DateTime?
+  loginCount      Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   sales           Sale[]
   passwordResets  PasswordResetToken[]
+  emailVerifies   EmailVerificationToken[]
   usageLogs       UsageLog[]
 
   @@index([brandId])
@@ -157,6 +160,18 @@ model SaleItem {
 }
 
 model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+/// Email confirmation tokens (signup verification). Same protocol as
+/// password resets: SHA-256-hashed, single-use, 24h expiry.
+model EmailVerificationToken {
   id        String    @id @default(cuid())
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)

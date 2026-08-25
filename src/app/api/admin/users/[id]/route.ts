@@ -45,7 +45,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           ? { brandId: body.role === 'SUPER_ADMIN' || body.brandId === null ? null : body.brandId }
           : {}),
         ...(body.isActive !== undefined ? { isActive: body.isActive } : {}),
-        ...(body.password ? { passwordHash: await hashPassword(body.password) } : {}),
+        ...(body.password
+          ? {
+              passwordHash: await hashPassword(body.password),
+              // Kill the user's existing sessions after an admin password set.
+              tokenVersion: { increment: 1 },
+            }
+          : {}),
       },
       select: { id: true, email: true, role: true, isActive: true, brandId: true },
     });

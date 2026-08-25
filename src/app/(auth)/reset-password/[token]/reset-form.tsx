@@ -51,7 +51,9 @@ export function ResetForm({ token }: { token: string }) {
     <div className="w-full max-w-md">
       <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         <h1 className="text-xl font-bold text-slate-900">Set a new password</h1>
-        <p className="mt-1 text-sm text-slate-500">Choose a strong password of at least 8 characters.</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Choose a strong password: 10–72 characters with at least one letter and one number.
+        </p>
         {error ? (
           <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
         ) : null}
@@ -62,7 +64,8 @@ export function ResetForm({ token }: { token: string }) {
               id="password"
               type="password"
               required
-              minLength={8}
+              minLength={10}
+              maxLength={72}
               autoComplete="new-password"
               className="input"
               value={password}
@@ -75,7 +78,8 @@ export function ResetForm({ token }: { token: string }) {
               id="confirm"
               type="password"
               required
-              minLength={8}
+              minLength={10}
+              maxLength={72}
               autoComplete="new-password"
               className="input"
               value={confirm}

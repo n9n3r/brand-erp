@@ -17,9 +17,14 @@ export async function requireApiUser(): Promise<SessionPayload> {
   if (!session) throw new ApiError(401, 'Not authenticated');
   const user = await prisma.user.findUnique({
     where: { id: session.sub },
-    select: { isActive: true, brand: { select: { isActive: true } } },
+    select: { isActive: true, tokenVersion: true, brand: { select: { isActive: true } } },
   });
   if (!user || !user.isActive) throw new ApiError(401, 'Your account has been deactivated');
+  // Session versioning: password resets/changes bump tokenVersion, which
+  // immediately invalidates every JWT issued before the change.
+  if ((session.tv ?? 0) !== user.tokenVersion) {
+    throw new ApiError(401, 'Session expired after a password change — please log in again');
+  }
   return session;
 }
 

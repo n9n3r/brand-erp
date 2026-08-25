@@ -11,6 +11,7 @@ export type AdminUserRow = {
   email: string;
   role: 'SUPER_ADMIN' | 'BRAND_ADMIN' | 'BRAND_USER';
   isActive: boolean;
+  emailVerified: boolean;
   loginCount: number;
   lastLoginAt: string | null;
   brandId: string | null;
@@ -28,6 +29,7 @@ export default async function AdminUsersPage() {
         email: true,
         role: true,
         isActive: true,
+        emailVerifiedAt: true,
         loginCount: true,
         lastLoginAt: true,
         brand: { select: { id: true, name: true } },
@@ -46,6 +48,7 @@ export default async function AdminUsersPage() {
     email: u.email,
     role: u.role,
     isActive: u.isActive,
+    emailVerified: !!u.emailVerifiedAt,
     loginCount: u.loginCount,
     lastLoginAt: u.lastLoginAt ? u.lastLoginAt.toISOString() : null,
     brandId: u.brand?.id ?? null,

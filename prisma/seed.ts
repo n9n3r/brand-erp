@@ -32,6 +32,7 @@ async function main() {
       name: 'Platform Admin',
       passwordHash: await hash(superAdminPassword, 10),
       role: 'SUPER_ADMIN',
+      emailVerifiedAt: new Date(),
     },
   });
 
@@ -54,6 +55,7 @@ async function main() {
       passwordHash: await hash('Demo123!', 10),
       role: 'BRAND_ADMIN',
       brandId: brand.id,
+      emailVerifiedAt: new Date(),
     },
   });
   const demoStaff = await prisma.user.create({
@@ -63,6 +65,7 @@ async function main() {
       passwordHash: await hash('Demo123!', 10),
       role: 'BRAND_USER',
       brandId: brand.id,
+      emailVerifiedAt: new Date(),
     },
   });
 
