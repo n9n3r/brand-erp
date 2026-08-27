@@ -292,7 +292,7 @@ Stack: embedded Postgres 18.4 (`db push` + seed) · `next build` + `next start -
 | 12 | Role guard: `BRAND_USER` → `/api/admin/{brands,users}` | ✅ 403 "Super admin access required" |
 | 13 | Role guard: `BRAND_ADMIN` → `/api/admin/brands` | ✅ 403 |
 | 14 | `SUPER_ADMIN` login + `/admin`, `/admin/brands`, `/admin/users`, `/admin/logs` | ✅ 200 each (unauth → 307) |
-| 15 | Forgot-password (known + unknown email) | ✅ 200 both (no account enumeration); token logged without `RESEND_API_KEY` |
+| 15 | Forgot-password (known + unknown email) | ✅ 200 both (no account enumeration); token logged when no SMTP is configured |
 | 16 | Reset with token → reuse same token | ✅ 200, then 400 "already been used" (single-use) |
 | 17 | Old session after reset (`tokenVersion` bump) | ✅ 401 "Session expired — your password was changed"; old password → 401; new password → 200 |
 | 18 | Verify-email token (from signup) | ✅ first use sets `emailVerifiedAt` (DB-confirmed), reuse → redirect `?verifyFailed=1` |
@@ -300,6 +300,8 @@ Stack: embedded Postgres 18.4 (`db push` + seed) · `next build` + `next start -
 | 20 | All dashboard-area HTML pages with session | ✅ 200: `/dashboard`, `/inventory`, `/customers`, `/sales/new`, `/invoices`, `/invoices/[id]`, `/expenses`, `/reports`, `/settings` |
 
 **Test accounts (seeded):** `admin@erpdemo.app / Admin123!` (SUPER_ADMIN) · `demo@erpdemo.app / Demo123!` (BRAND_ADMIN, Amaka Skincare) · `staff@erpdemo.app / Demo123!` (BRAND_USER).
+
+**Post-verification change:** the email transport in `src/lib/email.ts` was switched from the Resend HTTP API to **Nodemailer over SMTP** (per request) — same `sendEmail(to, subject, text, html?)` signature and same console fallback, configured via `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_USER`/`SMTP_PASS`/`MAIL_FROM` (see `.env.example`). Verified both paths live: console fallback without `SMTP_HOST`, and real SMTP delivery to a local aiosmtpd sink (`SMTP_HOST=127.0.0.1 SMTP_PORT=2525`) — the reset link in the actually-delivered email completed a full reset + re-login cycle.
 
 ---
 

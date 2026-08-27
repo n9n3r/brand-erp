@@ -28,8 +28,8 @@
                                                         │ (pooled conn.)
                                                         ▼
                                               ┌──────────────────┐
-                        Optional: Resend ─────│  PostgreSQL       │
-                        (reset emails)        │  (Neon free tier) │
+                        Optional: SMTP ──────│  PostgreSQL       │
+                        (Nodemailer)         │  (Neon free tier) │
                                               └──────────────────┘
 ```
 
@@ -52,7 +52,7 @@
 | Database | PostgreSQL (Neon) | Serverless-friendly, generous free tier, real SQL aggregates for reports. Alternatives: Supabase (same engine, fine swap), PlanetScale (MySQL, no free tier now) |
 | ORM | Prisma | Type-safe queries, migrations, `db push` for prototyping. Alternative: Drizzle (lighter, less tooling) |
 | Auth | bcryptjs + jose JWT in httpOnly cookie | No external dependency (Auth0/Clerk cost money and add lock-in); edge-verifiable in middleware. Alternative: NextAuth — heavier, session storage choices complicate serverless |
-| Email | Resend (optional) | Only needed for reset emails; logs to console otherwise so testing stays free |
+| Email | Nodemailer over SMTP (optional) | Any provider (Gmail, Resend SMTP, Mailgun, SES, Mailpit); logs to console when `SMTP_HOST` is unset so testing stays free |
 | Charts | Recharts | Declarative, SSR-friendly |
 | Validation | Zod | One schema language for every endpoint body |
 

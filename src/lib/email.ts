@@ -1,33 +1,53 @@
+import nodemailer from 'nodemailer';
+
 /**
- * Minimal email transport. Uses the Resend HTTP API directly (no SDK
- * dependency); without RESEND_API_KEY the message is logged to the server
- * console instead, so local testing stays free (see README).
+ * Minimal email transport (Nodemailer over SMTP — works with any provider:
+ * Gmail/Google Workspace, Resend SMTP, Mailgun, SES, Mailpit, …).
+ * Without SMTP_HOST the message is logged to the server console instead,
+ * so local testing stays free (see README).
+ *
+ * Config (all optional):
+ *   SMTP_HOST   e.g. "smtp.gmail.com" — required to actually send
+ *   SMTP_PORT   default 587 (STARTTLS); 465 uses implicit TLS
+ *   SMTP_SECURE "true"/"false" — auto-derived from the port when unset
+ *   SMTP_USER   auth user; empty = no auth (local relay)
+ *   SMTP_PASS   auth password / app-specific password / token
+ *   MAIL_FROM   default "MyBrand <noreply@localhost>"
  */
-export async function sendEmail(to: string, subject: string, text: string, html?: string): Promise<void> {
-  const key = process.env.RESEND_API_KEY;
-  if (key) {
-    try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${key}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: process.env.MAIL_FROM ?? 'MyBrand <onboarding@resend.dev>',
-          to: [to],
-          subject,
-          text,
-          html: html ?? `<pre style="white-space:pre-wrap;font-family:inherit">${text}</pre>`,
-        }),
-      });
-      if (!res.ok) {
-        console.error('[email] Resend rejected the message:', res.status, await res.text());
-      }
-      return;
-    } catch (err) {
-      console.error('[email] Resend request failed:', err);
-    }
+let cachedTransport: nodemailer.Transporter | null = null;
+
+function getTransport(): nodemailer.Transporter | null {
+  const host = process.env.SMTP_HOST;
+  if (!host) return null;
+  if (!cachedTransport) {
+    const port = Number(process.env.SMTP_PORT ?? 587) || 587;
+    cachedTransport = nodemailer.createTransport({
+      host,
+      port,
+      secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : port === 465,
+      auth: process.env.SMTP_USER
+        ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS ?? '' }
+        : undefined,
+    });
   }
-  console.log(`[email] (RESEND_API_KEY not set — not sent)\nTo: ${to}\nSubject: ${subject}\n\n${text}`);
+  return cachedTransport;
+}
+
+export async function sendEmail(to: string, subject: string, text: string, html?: string): Promise<void> {
+  const transport = getTransport();
+  if (!transport) {
+    console.log(`[email] (SMTP_HOST not set — not sent)\nTo: ${to}\nSubject: ${subject}\n\n${text}`);
+    return;
+  }
+  try {
+    await transport.sendMail({
+      from: process.env.MAIL_FROM ?? 'MyBrand <noreply@localhost>',
+      to,
+      subject,
+      text,
+      html: html ?? `<pre style="white-space:pre-wrap;font-family:inherit">${text}</pre>`,
+    });
+  } catch (err) {
+    console.error('[email] SMTP send failed:', err);
+  }
 }
