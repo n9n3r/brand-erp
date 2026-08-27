@@ -35,7 +35,7 @@ export default async function InvoicesPage({
         : {}),
     },
     orderBy: { soldAt: 'desc' },
-    take: 100,
+    take: 100, // ⚠️ totals below are computed over this capped set only — see ERRORS_AND_SOLUTIONS.md (B-3)
     include: { customer: { select: { name: true } }, _count: { select: { items: true } } },
   });
 

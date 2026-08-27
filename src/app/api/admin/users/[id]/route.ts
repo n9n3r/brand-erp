@@ -49,9 +49,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         ...(body.name !== undefined ? { name: body.name.trim() } : {}),
         ...(body.email !== undefined ? { email: body.email.toLowerCase().trim() } : {}),
         ...(body.role !== undefined ? { role: body.role } : {}),
-        ...(body.brandId !== undefined
-          ? { brandId: body.role === 'SUPER_ADMIN' || body.brandId === null ? null : body.brandId }
-          : {}),
+        // Super admins are platform-level: always detach from the brand, even
+        // when the client only sends `{ role: "SUPER_ADMIN" }` (no brandId).
+        ...(body.role === 'SUPER_ADMIN'
+          ? { brandId: null }
+          : body.brandId !== undefined
+            ? { brandId: body.brandId === null ? null : body.brandId }
+            : {}),
         ...(body.isActive !== undefined ? { isActive: body.isActive } : {}),
         ...(body.password
           ? {

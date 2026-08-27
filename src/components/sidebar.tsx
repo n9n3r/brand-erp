@@ -53,7 +53,7 @@ function NavItems({ items }: { items: typeof brandNav }) {
               active ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-white'
             )}
           >
-            <item.icon className="h-4.5 w-4.5 h-[18px] w-[18px]" />
+            <item.icon className="h-[18px] w-[18px]" />
             {item.label}
           </Link>
         );
