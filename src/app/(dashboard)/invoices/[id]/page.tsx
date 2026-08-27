@@ -189,7 +189,7 @@ export default async function InvoiceDetailPage({
 
       {balance > 0.001 ? (
         <div className="no-print mt-6">
-          <PaymentForm saleId={sale.id} balance={balance} currency={currency} />
+          <PaymentForm saleId={sale.id} paid={paid} balance={balance} currency={currency} />
         </div>
       ) : null}
     </div>
