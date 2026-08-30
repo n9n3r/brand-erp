@@ -301,7 +301,7 @@ Stack: embedded Postgres 18.4 (`db push` + seed) · `next build` + `next start -
 
 **Test accounts (seeded):** `admin@erpdemo.app / Admin123!` (SUPER_ADMIN) · `demo@erpdemo.app / Demo123!` (BRAND_ADMIN, Amaka Skincare) · `staff@erpdemo.app / Demo123!` (BRAND_USER).
 
-**Post-verification change:** the email transport in `src/lib/email.ts` was switched from the Resend HTTP API to **Nodemailer over SMTP** (per request) — same `sendEmail(to, subject, text, html?)` signature and same console fallback, configured via `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_USER`/`SMTP_PASS`/`MAIL_FROM` (see `.env.example`). Verified both paths live: console fallback without `SMTP_HOST`, and real SMTP delivery to a local aiosmtpd sink (`SMTP_HOST=127.0.0.1 SMTP_PORT=2525`) — the reset link in the actually-delivered email completed a full reset + re-login cycle.
+**Post-verification change:** the email transport in `src/lib/email.ts` was switched from the Resend HTTP API to **Nodemailer over SMTP** (per request) — same `sendEmail(to, subject, text, html?)` signature and same console fallback, configured via `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_USER`/`SMTP_PASS`/`MAIL_FROM` (see `.env.example`). Verified both paths live: console fallback without `SMTP_HOST`, and real SMTP delivery to a local aiosmtpd sink (`SMTP_HOST=127.0.0.1 SMTP_PORT=2525`) — the reset link in the actually-delivered email completed a full reset + re-login cycle. A dev mailbox (`scripts/dev-mailbox.py`, aiosmtpd sink on :2525 + web UI on :8025, documented in README "Local dev mailbox") now makes verification/reset emails fully usable in this environment with no provider account; the app's `.env` points at it.
 
 ---
 

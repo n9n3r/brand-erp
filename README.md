@@ -49,6 +49,20 @@ npm run db:seed            # demo brand + test accounts (optional)
 npm run dev                # http://localhost:3000
 ```
 
+### Local dev mailbox (verification/reset emails without an email provider)
+
+```bash
+python3 -m venv /tmp/smtpvenv && /tmp/smtpvenv/bin/pip install aiosmtpd
+/tmp/smtpvenv/bin/python scripts/dev-mailbox.py   # SMTP sink :2525 + web UI :8025
+```
+
+Then point `.env` at it — `SMTP_HOST=127.0.0.1`, `SMTP_PORT=2525`,
+`SMTP_SECURE=false`, leave `SMTP_USER`/`SMTP_PASS` empty — and restart the app.
+Verification and reset emails land in the web UI at
+http://localhost:8025 (auto-refreshes); when the UI is opened through a
+preview host the links inside the emails are rewritten to the app's preview
+origin, so you can click them straight through.
+
 ### Getting "P1000: Authentication failed" from Prisma?
 
 Your local Postgres doesn't accept the credentials in `DATABASE_URL` (fresh
