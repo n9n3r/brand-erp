@@ -48,6 +48,9 @@ async function main() {
     },
   });
 
+  // ⚠️ user.create fails if demo@erpdemo.app exists on a *different* brand
+  // (the brand wipe above only cascades users of the demo brand).
+  // See ERRORS_AND_SOLUTIONS.md (B-8) for the upsert fix.
   const demoAdmin = await prisma.user.create({
     data: {
       email: 'demo@erpdemo.app',

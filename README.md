@@ -23,7 +23,7 @@ Prisma**, deployable free on **Vercel + Neon**.
 |---|---|
 | **Landing page** | Marketing page with Login / Sign-up entry points |
 | **Auth** | Email+password sign-up (creates a brand workspace), login, logout, bcrypt hashing, JWT sessions in httpOnly cookies |
-| **Password reset** | Email protocol: single-use SHA-256-hashed tokens, 1-hour expiry, previous tokens invalidated. Works with Resend; without an email provider, links are logged to the server console (and returned in the API response in dev) |
+| **Password reset** | Email protocol: single-use SHA-256-hashed tokens, 1-hour expiry, previous tokens invalidated. Sends over any SMTP provider (Nodemailer); without SMTP configured, links are logged to the server console (and returned in the API response in dev) |
 | **Inventory** | Products (SKU, cost/price, stock, reorder alerts), categories **created manually by the brand**, soft archive via active flag |
 | **Customers** | Directory with contact info, order count, lifetime spend |
 | **Sales & invoices** | POS-style screen; transactional stock check + decrement; auto-numbered invoices (`INV-2026-00001`); paid / partial / unpaid statuses; record part-payments later; printable invoice page |
@@ -48,6 +48,20 @@ npm run db:push            # create the schema
 npm run db:seed            # demo brand + test accounts (optional)
 npm run dev                # http://localhost:3000
 ```
+
+### Local dev mailbox (verification/reset emails without an email provider)
+
+```bash
+python3 -m venv /tmp/smtpvenv && /tmp/smtpvenv/bin/pip install aiosmtpd
+/tmp/smtpvenv/bin/python scripts/dev-mailbox.py   # SMTP sink :2525 + web UI :8025
+```
+
+Then point `.env` at it — `SMTP_HOST=127.0.0.1`, `SMTP_PORT=2525`,
+`SMTP_SECURE=false`, leave `SMTP_USER`/`SMTP_PASS` empty — and restart the app.
+Verification and reset emails land in the web UI at
+http://localhost:8025 (auto-refreshes); when the UI is opened through a
+preview host the links inside the emails are rewritten to the app's preview
+origin, so you can click them straight through.
 
 ### Getting "P1000: Authentication failed" from Prisma?
 
@@ -107,7 +121,7 @@ The app couldn't get a database connection in time. Usual causes & fixes:
    | `DATABASE_URL` | Neon pooled connection string |
    | `JWT_SECRET` | long random string (`npm run gen:secret`) |
    | `APP_URL` | `https://your-app.vercel.app` |
-   | `RESEND_API_KEY` | optional — enables real reset emails |
+   | `SMTP_HOST` (+ `SMTP_PORT`/`SMTP_SECURE`/`SMTP_USER`/`SMTP_PASS`) | optional — enables real reset/verification emails via any SMTP provider |
    | `MAIL_FROM` | optional — e.g. `MyBrand <noreply@yourdomain>` |
 4. Deploy. The default build command (`npm run build`) already runs
    `prisma generate`. Node 20 is used automatically.
@@ -154,4 +168,4 @@ src/app/api/…               # REST API (auth, CRUD, sales, admin)
 - All brand-scoped queries filter by `brandId` — one brand can never read another's data (verified by test)
 - Reset tokens: 32 random bytes, stored only as SHA-256 hashes, single-use, 1-hour expiry
 - Guards: cannot deactivate/demote yourself; cannot remove the last super admin; deactivating a brand locks its users out
-- **Before real production use**: add rate limiting (e.g. Upstash) on `/api/auth/*`, and set `APP_URL`/`RESEND_API_KEY` so emails actually send
+- **Before real production use**: add rate limiting (e.g. Upstash) on `/api/auth/*`, and set `APP_URL`/`SMTP_HOST` (+ SMTP credentials) so emails actually send

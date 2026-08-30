@@ -64,6 +64,9 @@ export function addDays(d: Date, days: number): Date {
 }
 
 export function dayKey(d: Date): string {
+  // ⚠️ UTC-based day key: for NG brands (UTC+1), sales between 00:00–00:59
+  // local time bucket into the previous UTC day in daily charts.
+  // See ERRORS_AND_SOLUTIONS.md (B-6).
   return d.toISOString().slice(0, 10);
 }
 

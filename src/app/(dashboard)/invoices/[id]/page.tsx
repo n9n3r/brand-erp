@@ -112,7 +112,7 @@ export default async function InvoiceDetailPage({
 
         {/* Delivery status (app chrome only — not printed) */}
         <div className="no-print mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-          <DeliveryToggle saleId={sale.id} delivered={!!sale.deliveredAt} deliveredAt={sale.deliveredAt} />
+          <DeliveryToggle saleId={sale.id} delivered={!!sale.deliveredAt} deliveredAt={sale.deliveredAt ? sale.deliveredAt.toISOString() : null} />
         </div>
 
         {/* Items */}
@@ -189,7 +189,7 @@ export default async function InvoiceDetailPage({
 
       {balance > 0.001 ? (
         <div className="no-print mt-6">
-          <PaymentForm saleId={sale.id} balance={balance} currency={currency} />
+          <PaymentForm saleId={sale.id} paid={paid} balance={balance} currency={currency} />
         </div>
       ) : null}
     </div>

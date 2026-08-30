@@ -21,13 +21,15 @@ export async function GET(req: NextRequest) {
           ? {
               incurredAt: {
                 ...(from ? { gte: new Date(from) } : {}),
+                // ⚠️ 'to' is interpreted as UTC here, while /reports uses local time (endOfDay) —
+                // inconsistent range boundaries; see ERRORS_AND_SOLUTIONS.md (B-5)
                 ...(to ? { lte: new Date(`${to}T23:59:59.999Z`) } : {}),
               },
             }
           : {}),
       },
       orderBy: { incurredAt: 'desc' },
-      take: 200,
+      take: 200, // ⚠️ silent cap — older records are not returned and there is no pagination (B-4)
       include: { createdBy: { select: { name: true } } },
     });
     return ok({

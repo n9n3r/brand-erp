@@ -15,7 +15,8 @@ export function DeliveryToggle({
 }: {
   saleId: string;
   delivered: boolean;
-  deliveredAt: Date | null;
+  /** ISO string — Dates serialized across the RSC boundary arrive as strings. */
+  deliveredAt: string | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
